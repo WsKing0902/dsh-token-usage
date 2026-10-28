@@ -24,7 +24,7 @@ import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { CurrencyView } from './format.ts'
 import { bandOf, formatCost, formatRequestRate, formatRequestRateExact, formatTimeOfDay, formatTokens, formatTtft } from './format.ts'
 import { bandClassOf } from './HitRateText.tsx'
-import type { RequestDetailCache, RequestDetailView, SessionRequestDetails } from '../wire.ts'
+import type { CompactionAttributionItem, RequestDetailCache, RequestDetailView, SessionRequestDetails } from '../wire.ts'
 import type { ConversationStatus } from '../wire.ts'
 import styles from './UsageView.module.css'
 
@@ -79,6 +79,19 @@ function hitTooltipOf(cache: RequestDetailCache, t: TranslateNS<'token-usage'>):
   return ''
 }
 
+/** The 「压缩后」 badge's tooltip: the prefix-rewrite caveat first, then one
+ * line per attribution source (a prune cluster / a summary) with its shadow
+ * figure. The wording says the prefix WAS rewritten and cache behaviour MAY
+ * be affected — never that compaction caused a cache loss, because a
+ * high-hit row carries the same badge (the miss severity depends on the
+ * earliest rewritten position, which the plugin cannot see). */
+function attributionTooltipOf(attribution: readonly CompactionAttributionItem[], t: TranslateNS<'token-usage'>): string {
+  const lines = attribution.map(item => item.kind === 'prune'
+    ? t('pool.attribution.prune', { count: String(item.count), tokens: formatTokens(item.shadowedTokenCount) })
+    : t('pool.attribution.summary', { tokens: formatTokens(item.shadowedTokenCount) }))
+  return [t('pool.attribution.prefix'), ...lines].join('\n')
+}
+
 /** The hit cell keeps request precision, shared numeric colours, and its explanation. */
 function HitCell({ cache, t }: { cache: RequestDetailCache; t: TranslateNS<'token-usage'> }): ReactNode {
   const text = formatRequestRate(cache.rate)
@@ -111,16 +124,27 @@ function ModelCell({ detail, cache, t }: { detail: RequestDetailView; cache: Req
     : detail.kind === 'compaction'
       ? t('pool.kind.compaction')
       : undefined
+  // The 「压缩后」 badge shares the kind badge's seat and styling; its text
+  // never splits by source — the causal chain lives in the tooltip.
+  const afterCompaction = detail.compactionAttribution !== undefined
+    ? (
+      <Tooltip label={attributionTooltipOf(detail.compactionAttribution, t)} side="top" delayMs={100}>
+        <span className={styles['auxKind']} tabIndex={0}>{t('pool.afterCompaction')}</span>
+      </Tooltip>
+    )
+    : undefined
   if (cache.band !== 'loss') {
     return <span className={styles['modelInline']}>
       {name}
       {kindLabel !== undefined && <span className={styles['auxKind']} aria-label={kindLabel}>{kindLabel}</span>}
+      {afterCompaction}
     </span>
   }
   return (
     <span className={styles['modelInline']}>
       {name}
       {kindLabel !== undefined && <span className={styles['auxKind']} aria-label={kindLabel}>{kindLabel}</span>}
+      {afterCompaction}
       <Tooltip label={hitTooltipOf(cache, t)} side="top" delayMs={100}>
         <span className={styles['cacheLoss']} tabIndex={0}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m10.3 3.8-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3.2l-8-14a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4m0 4h.01" /></svg>

@@ -701,6 +701,34 @@ describe('UsageView request pool', () => {
     expectText('本会话')
   })
 
+  it('renders the 压缩后 badge with the rewrite causal chain, cache band untouched', async () => {
+    // The 93.6%-hit counter-example: attributed (a prune run preceded it)
+    // yet completely normal cache — the badge annotates, never judges.
+    const attributed = {
+      ...LOSS_ROW,
+      id: 'msg-after',
+      durableRequestId: 'msg-after',
+      inputTokens: 4_500,
+      cacheReadTokens: 65_700,
+      cache: { rate: 0.936, eligibility: 'eligible' as const, band: 'normal' as const },
+      compactionAttribution: [{ kind: 'prune', count: 2, shadowedTokenCount: 4_812 }],
+    }
+    const plain = { ...LOSS_ROW, id: 'msg-plain', durableRequestId: 'msg-plain', cache: { rate: 0.9, eligibility: 'eligible' as const, band: 'normal' as const } }
+    stubFetch({ root: summaryWithRequestDetails([attributed, plain]) })
+    renderView()
+    await waitFor(() => expectText('最新请求'))
+    const latest = screen.getByRole('region', { name: '最新请求' })
+    expect(within(latest).getByText('93.6%')).toBeTruthy()
+    const badge = within(latest).getByText('压缩后')
+    fireEvent.mouseEnter(badge.closest('span[tabindex]')!)
+    const tooltip = screen.getByRole('tooltip').textContent!
+    expect(tooltip).toContain('宿主的压缩操作改写了上下文前缀，缓存表现可能受影响')
+    expect(tooltip).toContain('工具结果剪枝改写了请求前缀（2 条，剪除消息的影子 token 合计 4.8K）')
+    // The unattributed history row shows no badge.
+    const history = screen.getByRole('table', { name: '实时请求' })
+    expect(within(history).queryByText('压缩后')).toBeNull()
+  })
+
   it('states where the conversation stands in the footer slot and keeps the request’s own diagnostic in the tooltip', async () => {
     // A settled request whose cache assessment was excluded: the diagnostic
     // explains the request, the conversation state explains the dialogue.
