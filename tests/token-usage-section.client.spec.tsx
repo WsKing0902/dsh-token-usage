@@ -859,11 +859,12 @@ describe('TokenUsageSection filtering', () => {
     fireEvent.click(screen.getByRole('button', { name: '日期范围' }))
     fireEvent.click(screen.getByText('清除范围'))
     await screen.findAllByText('总 token')
-    const chart = await screen.findByRole('img', { name: '每日总 token 曲线' })
-    // Day totals are 31 and 16, so the y axis tops out at a round 40 (ticks 10..40).
-    for (const tick of ['10', '20', '30', '40']) {
-      expect(within(chart).getByText(tick)).toBeTruthy()
-    }
+    // Two models in the fixture, so the day chart is the per-model trend.
+    const chart = await screen.findByRole('img', { name: '每日分模型 token 曲线' })
+    // One colored legend chip per model (each carries its range total); the
+    // legend sits above the SVG, so it is queried from the screen, not the svg.
+    expect(screen.getAllByText('deepseek-chat').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('deepseek-reasoner').length).toBeGreaterThan(0)
     // Day labels (MM-DD) close the x axis.
     expect(within(chart).getByText('01-15')).toBeTruthy()
     expect(within(chart).getByText('01-16')).toBeTruthy()
@@ -876,7 +877,7 @@ describe('TokenUsageSection filtering', () => {
     fireEvent.click(screen.getByRole('button', { name: '日期范围' }))
     fireEvent.click(screen.getByText('清除范围'))
     await screen.findAllByText('总 token')
-    const chart = await screen.findByRole('img', { name: '每日总 token 曲线' })
+    const chart = await screen.findByRole('img', { name: '每日分模型 token 曲线' })
 
     // No label before any interaction.
     expect(within(chart).queryByText(/总量/)).toBeNull()
@@ -937,7 +938,7 @@ describe('TokenUsageSection filtering', () => {
     fireEvent.click(screen.getByRole('button', { name: '快捷区间' }))
     fireEvent.click(screen.getByRole('option', { name: '7d' }))
     await waitForCall(fetch, 2)
-    expect(await screen.findByRole('img', { name: '每日总 token 曲线' })).toBeTruthy()
+    expect(await screen.findByRole('img', { name: '每日分模型 token 曲线' })).toBeTruthy()
   })
 })
 

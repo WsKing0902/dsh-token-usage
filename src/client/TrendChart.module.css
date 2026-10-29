@@ -88,7 +88,7 @@
 }
 
 /* The floating per-day label: card-like box above the active point. */
-.pointLabel rect {
+.pointLabel > rect {
   fill: var(--dsw-alias-bg-layer-3);
   stroke: var(--dsw-alias-border-l2);
   stroke-width: 1;
@@ -116,3 +116,80 @@
   color: var(--dsw-alias-label-secondary);
 }
 
+
+/* ── Per-model daily trend (MultiModelTrendChart) ─────────────────────── */
+
+.multiWrap {
+  display: block;
+}
+
+/* Legend above the SVG: one chip per model with its range total. */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin: 0 0 6px;
+  padding: 0 2px;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.legendName {
+  max-width: 14em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legendValue {
+  color: var(--dsw-alias-label-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* One colored line per model; the hue arrives inline from the palette. */
+.modelLine {
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.modelDot {
+  stroke: var(--dsw-alias-bg-layer-1);
+  stroke-width: 1.5;
+}
+
+/* Hover card rows: title (day + total), then one row per model with tokens.
+ * Scoped under .pointLabel so these beat the base `.pointLabel text` rule. */
+.pointLabel .tooltipTitle {
+  fill: var(--dsw-alias-label-primary);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.pointLabel .tooltipText {
+  fill: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+}
+
+.pointLabel .tooltipValue {
+  fill: var(--dsw-alias-label-primary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}

@@ -22,12 +22,24 @@
 import { useId, useState } from 'react'
 import type { MouseEvent, ReactNode } from 'react'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
-import type { RequestPoint, UsageDayRow, UsageHourRow } from '../wire.ts'
+import type { RequestPoint, UsageDayRow, UsageHourRow, UsageRateRow } from '../wire.ts'
 import { formatTokens } from './format.ts'
+import { MultiModelTrendChart } from './MultiModelTrendChart.tsx'
+import { buildModelDaySeries } from './trend-chart/models.ts'
 import { tickValues } from './trend-chart/axis.ts'
 import { areaPath, gapAfter, smoothSeriesPath } from './trend-chart/path.ts'
 import { buildChartPoints, cumulateSeries } from './trend-chart/points.ts'
 import { dotRadius, labelIndices, scaleSeries } from './trend-chart/scale.ts'
+import {
+  CHART_BOTTOM,
+  CHART_HEIGHT,
+  CHART_LEFT,
+  CHART_RIGHT,
+  CHART_TOP,
+  CHART_WIDTH,
+  CHART_X_LABELS,
+  HIT_TARGET_FLOOR,
+} from './trend-chart/layout.ts'
 import { useIsLightMode } from './use-color-scheme.ts'
 import styles from './TrendChart.module.css'
 
@@ -41,15 +53,15 @@ export type { TrendBucket } from './trend-chart/bucket.ts'
 export type { ChartSeries, ScaleResult } from './trend-chart/index.ts'
 
 
-/** SVG canvas metrics; the element scales to the section width via viewBox. */
-const WIDTH = 800
-const HEIGHT = 190
-const TOP = 12
-const BOTTOM = 16
-const LEFT = 44
-const RIGHT = 16
-const X_LABELS = 22
-const HIT_TARGET_FLOOR = 6
+/** SVG canvas metrics; shared with the per-model renderer so both charts
+ * line up under the same section width and margins. */
+const WIDTH = CHART_WIDTH
+const HEIGHT = CHART_HEIGHT
+const TOP = CHART_TOP
+const BOTTOM = CHART_BOTTOM
+const LEFT = CHART_LEFT
+const RIGHT = CHART_RIGHT
+const X_LABELS = CHART_X_LABELS
 
 /**
  * One plotted point and the i18n strings the renderer needs. `time` is
@@ -115,13 +127,16 @@ function tipOf(t: TranslateNS<'token-usage'>, point: PlottedPoint, mode: TrendCh
  * the `t` seat for the empty hint and chart aria-label.
  * @returns the SVG chart, or a placeholder for an empty range.
  */
-export function TrendChart({ rows, hours, requests, from, to, mode = 'interval', t }: {
+export function TrendChart({ rows, hours, requests, from, to, mode = 'interval', rateRows, t }: {
   rows: readonly UsageDayRow[]
   hours?: readonly UsageHourRow[]
   requests?: readonly RequestPoint[]
   from?: string
   to?: string
   mode?: TrendChartMode
+  /** The filtered day × model × rate rows: when present in day mode the
+   * renderer draws one colored line per model instead of the total line. */
+  rateRows?: readonly UsageRateRow[]
   t: TranslateNS<'token-usage'>
 }): ReactNode {
   const isLight = useIsLightMode()
@@ -135,6 +150,20 @@ export function TrendChart({ rows, hours, requests, from, to, mode = 'interval',
   // Cumulative mode is a pure y-axis transform on the built points (a
   // prefix sum); the x axis, bucketing, and point count are untouched.
   const series = mode === 'cumulative' ? cumulateSeries(base) : base
+  // Per-model daily trend: the settings page supplies its rate rows, so the
+  // day chart can split the total into one colored line per model (the
+  // ZCode-style model breakdown). Hour / request / cumulative modes keep the
+  // single total line — their per-model granules are not part of this view.
+  if (rateRows !== undefined && mode === 'interval' && hours === undefined && series.mode === 'equidistant') {
+    const modelSeries = buildModelDaySeries({
+      rateRows,
+      dayKeys: series.points.map(point => point.key),
+      otherLabel: t('chart.modelOther'),
+    })
+    if (modelSeries.length >= 2) {
+      return <MultiModelTrendChart points={series.points} series={modelSeries} t={t} />
+    }
+  }
   // Materialise the points (and apply t() through `tipOf` at render time).
   const points: PlottedPoint[] = series.points.map(point => ({
     key: point.key,

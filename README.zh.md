@@ -1,5 +1,20 @@
 # dsh-token-usage
 
+
+> **本分支（`multi-model-usage`）是定制版 · 0.4.8-multi.1**，相对 npm 官方 0.4.8 的两处改动：
+>
+> 1. **Kimi For Coding 配额修复**：官方版把接口返回的字符串数字（`"limit": "100"`）当无效值，配额面板空白；本分支按数字解析。
+> 2. **按日趋势图多模型彩色展示**（参考 ZCode 用量页做法）：按用量 Top 6 模型各画一条彩色折线 + 图例（各模型区间总量）+ 悬浮当天分模型明细；其余模型折成灰色「其他」。
+>
+> **安装（分支自带构建产物 `lib/`，无需本地构建）**：
+>
+> ```sh
+> dsh plugin --profile web add github:WsKing0902/dsh-token-usage#multi-model-usage
+> ```
+>
+> DSH Desktop App 请先完全退出，用 App 自带 CLI 安装（见仓库根 README 的 desktop 说明），或直接按下面的复制提示词交给 DSH 智能体执行。
+
+
 [![awesome · DSH plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
 
 ![Token 用量统计页](docs/images/token-usage_zh.png)

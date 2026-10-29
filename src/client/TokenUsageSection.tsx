@@ -459,6 +459,7 @@ export function TokenUsageSection({ t, close, sessionListed, openSession }: Sett
             <PricingStatus costState={state.value.costState} pricingUnavailableReason={state.value.pricingUnavailableReason} associationStorageError={state.value.associationStorageError} t={t} />
             <TrendChart
               rows={state.value.byDay}
+              rateRows={state.value.rateRows}
               t={t}
               {...filters.from !== '' ? { from: filters.from } : {}}
               {...filters.to !== '' ? { to: filters.to } : {}}
