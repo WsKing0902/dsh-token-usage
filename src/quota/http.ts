@@ -67,6 +67,12 @@ export function requireArray(value: unknown, field: string): unknown[] {
 /** A finite non-negative number off a JSON value, else undefined. */
 export function numberOf(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value) && value >= 0) return value
+  // Several quota endpoints serialize counts as strings (`"limit": "100"`,
+  // e.g. Kimi For Coding); a string-typed number still reads as a number.
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed) && parsed >= 0) return parsed
+  }
   return undefined
 }
 
